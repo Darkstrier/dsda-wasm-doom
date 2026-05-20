@@ -40,6 +40,10 @@
             <label>Upload Configuration</label>
             <input type="file" id="cfg-file" accept=".cfg">
         </div>
+        <div class="control-row">
+            <label>SoundFont (optional)</label>
+            <input type="file" id="sf2-file" accept=".sf2">
+        </div>
         <button id="launch-btn" onclick="processAndLaunch()">Launch Game</button>
     </div>
     <br>
@@ -59,6 +63,7 @@
         var pwadBuffer = null;
         var pwadName = "";
         var cfgBuffer = null;
+        var sf2Buffer = null;
 
         var Module = {
             preRun: [function() {
@@ -75,9 +80,15 @@
                     terminal.textContent += "[web] Successfully mounted PWAD: " + pwadName + "\n";
                 }
 
+                if (sf2Buffer) {
+                    FS.writeFile('/soundfont.sf2', sf2Buffer);
+                    terminal.textContent += "[web] High-quality SoundFont mounted into virtual space.\n";
+                }
+
                 if (cfgBuffer) {
-                    FS.writeFile('/dsda-doom.cfg', cfgBuffer);
-                    terminal.textContent += "[web] dsda-doom.cfg configuration mapped into virtual root.\n";
+                    FS.mkdirTree('/home/webuser/.dsda-doom');
+                    FS.writeFile('/home/webuser/.dsda-doom/dsda-doom.cfg', cfgBuffer);
+                    terminal.textContent += "[web] dsda-doom.cfg configuration mapped into user home workspace.\n";
                 }
             }],
             postRun: [],
@@ -132,37 +143,49 @@
                     pwadBuffer = pBuf;
                     pwadName = pName;
 
-                    readLocalFile('cfg-file', true, function(cText, cName) {
-                        if (cText) {
-                            var configLines = cText.split('\n');
+                    readLocalFile('sf2-file', false, function(sBuf, sName) {
+                        sf2Buffer = sBuf;
+
+                        readLocalFile('cfg-file', true, function(cText, cName) {
+                            var configLines = cText ? cText.split('\n') : [];
+                            
                             var hasAspect = false;
+                            var hasMidi = false;
+                            var hasSF = false;
+
                             for (var i = 0; i < configLines.length; i++) {
-                                if (configLines[i].startsWith('aspect_ratio_correction')) {
+                                var line = configLines[i].trim();
+                                if (line.startsWith('aspect_ratio_correction')) {
                                     configLines[i] = 'aspect_ratio_correction         1';
                                     hasAspect = true;
+                                } else if (line.startsWith('snd_midiplayer')) {
+                                    configLines[i] = 'snd_midiplayer                  "fluidsynth"';
+                                    hasMidi = true;
+                                } else if (line.startsWith('snd_soundfont')) {
+                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "soundfont.sf2"' : 'snd_soundfont                   ""';
+                                    hasSF = true;
                                 }
                             }
-                            if (!hasAspect) {
-                                configLines.push('aspect_ratio_correction         1');
-                            }
+
+                            if (!hasAspect) configLines.push('aspect_ratio_correction         1');
+                            if (!hasMidi) configLines.push('snd_midiplayer                  "fluidsynth"');
+                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "soundfont.sf2"' : 'snd_soundfont                   ""');
+
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
-                        } else {
-                            var internalDefaultCfg = "aspect_ratio_correction         1\n";
-                            cfgBuffer = new TextEncoder().encode(internalDefaultCfg);
-                        }
 
-                        var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
-                        if (pwadName) {
-                            launchArgs.push("-file", pwadName);
-                        }
-                        Module.arguments = launchArgs;
+                            var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
+                            if (pwadName) {
+                                launchArgs.push("-file", pwadName);
+                            }
+                            Module.arguments = launchArgs;
 
-                        terminal.textContent += "[web] Downloading engine binaries and core assets\n";
+                            terminal.textContent += "[web] Downloading engine binaries and core assets\n";
 
-                        var script = document.createElement('script');
-                        script.src = "dsda-doom.js";
-                        script.async = true;
-                        document.body.appendChild(script);
+                            var script = document.createElement('script');
+                            script.src = "dsda-doom.js";
+                            script.async = true;
+                            document.body.appendChild(script);
+                        });
                     });
                 });
             });
