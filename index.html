@@ -7,15 +7,13 @@
     <style>
         @font-face {
             font-family: 'DoomFont';
-            src: url('DooM.ttf') format('truetype');
+            src: url('AmazDooMLeft.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
-
         body { background-color: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 15px; }
-        
         h1 { 
-            font-family: 'Doom', sans-serif; 
+            font-family: 'DoomFont', sans-serif; 
             font-size: 3.5rem;
             color: #ff3300;
             margin: 10px 0;
@@ -23,7 +21,6 @@
             text-shadow: 3px 3px 0px #550000, 5px 5px 0px #000; 
             text-transform: uppercase; 
         }
-
         .controls { background: #222; padding: 15px; border-radius: 5px; border: 1px solid #444; display: inline-block; margin-bottom: 15px; }
         input, button { padding: 8px; margin: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
         button { background: #a00; cursor: pointer; font-weight: bold; }
@@ -56,10 +53,31 @@
 
     <script type="text/javascript">
         var terminal = document.getElementById('output-terminal');
+        
+        // These will store the raw file bytes temporarily until FS is ready
+        var iwadBuffer = null;
+        var iwadName = "";
+        var pwadBuffer = null;
+        var pwadName = "";
 
         var Module = {
             preRun: [function() {
+                terminal.textContent += "[WEB] Core file system ready. Mounting files...\n";
+                
+                // 1. Download the system assets from GitHub
                 FS.createPreloadedFile('/', 'dsda-doom.wad', './dsda-doom.bin', true, false);
+                
+                // 2. Inject your selected IWAD straight into virtual memory
+                if (iwadBuffer) {
+                    FS.writeFile('/' + iwadName, iwadBuffer);
+                    terminal.textContent += "[WEB] Successfully mounted IWAD: " + iwadName + "\n";
+                }
+                
+                // 3. Inject your selected PWAD if you chose one
+                if (pwadBuffer) {
+                    FS.writeFile('/' + pwadName, pwadBuffer);
+                    terminal.textContent += "[WEB] Successfully mounted PWAD: " + pwadName + "\n";
+                }
             }],
             postRun: [],
             canvas: (function() {
@@ -73,24 +91,20 @@
             printErr: function(text) { terminal.textContent += "[ERROR] " + text + "\n"; terminal.scrollTop = terminal.scrollHeight; }
         };
 
-        function mountFile(fileElementId, callback) {
-            var fileInput = document.getElementById(fileElementId);
-            if (fileInput.files.length === 0) {
-                callback(null);
+        // Reads the file into a temporary variable before Emscripten boots
+        var readLocalFile = function(elementId, callback) {
+            var input = document.getElementById(elementId);
+            if (input.files.length === 0) {
+                callback(null, "");
                 return;
             }
-            
-            var file = fileInput.files[0];
+            var file = input.files[0];
             var reader = new FileReader();
-            
             reader.onload = function(e) {
-                var rawBuffer = new Uint8Array(e.target.result);
-                FS.writeFile('/' + file.name.toLowerCase(), rawBuffer);
-                terminal.textContent += "[WEB] Successfully mounted local file: " + file.name.toLowerCase() + "\n";
-                callback(file.name.toLowerCase());
+                callback(new Uint8Array(e.target.result), file.name.toLowerCase());
             };
             reader.readAsArrayBuffer(file);
-        }
+        };
 
         function processAndLaunch() {
             var iwadInput = document.getElementById('iwad-file');
@@ -100,21 +114,28 @@
             }
 
             document.getElementById('launch-btn').disabled = true;
-            terminal.textContent += "[WEB] Initializing Virtual File System...\n";
+            terminal.textContent += "[WEB] Reading local files into browser memory...\n";
 
-            mountFile('iwad-file', function(iwadName) {
-                mountFile('pwad-file', function(pwadName) {
-                    var safeIwad = iwadName.toLowerCase();
-                    var safePwad = pwadName ? pwadName.toLowerCase() : null;
-            
-                    var launchArgs = ["-iwad", safeIwad, "-width", "854", "-height", "480", "-window"];
-                    if (safePwad) {
-                        launchArgs.push("-file", safePwad);
+            // Read the IWAD file
+            readLocalFile('iwad-file', function(iBuf, iName) {
+                iwadBuffer = iBuf;
+                iwadName = iName;
+
+                // Read the optional PWAD file
+                readLocalFile('pwad-file', function(pBuf, pName) {
+                    pwadBuffer = pBuf;
+                    pwadName = pName;
+
+                    // Configure engine launch arguments
+                    var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
+                    if (pwadName) {
+                        launchArgs.push("-file", pwadName);
                     }
                     Module.arguments = launchArgs;
 
-                    terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.bin)...\n";
+                    terminal.textContent += "[WEB] Downloading engine binaries and core assets...\n";
 
+                    // Inject the main JS engine script. This triggers preRun safely.
                     var script = document.createElement('script');
                     script.src = "dsda-doom.js";
                     script.async = true;
