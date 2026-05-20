@@ -83,8 +83,8 @@
                 FS.mkdirTree('/home/webuser/.dsda-doom');
 
                 if (sf2Buffer) {
-                    FS.writeFile('/soundfont.sf2', sf2Buffer);
-                    FS.writeFile('/home/webuser/.dsda-doom/soundfont.sf2', sf2Buffer);
+                    FS.writeFile('/SC55_zzdenis_v0.5.sf2', sf2Buffer);
+                    FS.writeFile('/home/webuser/.dsda-doom/SC55_zzdenis_v0.5.sf2', sf2Buffer);
                     terminal.textContent += "[web] SoundFont loaded globally into filesystem paths.\n";
                 }
 
@@ -164,14 +164,14 @@
                                     configLines[i] = 'snd_midiplayer                  "fluidsynth"';
                                     hasMidi = true;
                                 } else if (line.startsWith('snd_soundfont')) {
-                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "/soundfont.sf2"' : 'snd_soundfont                   ""';
+                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "/SC55_zzdenis_v0.5.sf2"' : 'snd_soundfont                   ""';
                                     hasSF = true;
                                 }
                             }
 
                             if (!hasAspect) configLines.push('aspect_ratio_correction         1');
                             if (!hasMidi) configLines.push('snd_midiplayer                  "fluidsynth"');
-                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "/soundfont.sf2"' : 'snd_soundfont                   ""');
+                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "/SC55_zzdenis_v0.5.sf2"' : 'snd_soundfont                   ""');
 
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
 
