@@ -3,119 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSDA-Doom WebLauncher</title>
+    <title>dsda-wasm-doom</title>
     <style>
-        body {
-            background-color: #111;
-            color: #fff;
-            font-family: sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        h1 { margin-bottom: 5px; font-size: 1.6rem; }
-        .controls {
-            margin-bottom: 15px;
-            background: #222;
-            padding: 10px 20px;
-            border-radius: 5px;
-            border: 1px solid #444;
-        }
-        select, input, button {
-            padding: 8px;
-            margin: 5px;
-            background: #333;
-            color: white;
-            border: 1px solid #555;
-            border-radius: 4px;
-        }
-        button {
-            background: #a00;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        body { background-color: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 15px; }
+        .controls { background: #222; padding: 15px; border-radius: 5px; border: 1px solid #444; display: inline-block; margin-bottom: 15px; }
+        input, button { padding: 8px; margin: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
+        button { background: #a00; cursor: pointer; font-weight: bold; }
         button:hover { background: #c00; }
-        #canvas-container {
-            border: 4px solid #333;
-            background-color: #000;
-        }
-        canvas { display: block; image-rendering: pixelated; }
-        #status { margin-top: 15px; color: #aaa; font-size: 0.9rem; }
+        #canvas-container { border: 4px solid #333; background: #000; display: inline-block; }
+        canvas { display: block; image-rendering: pixelated; width: 100vw; max-width: 854px; height: auto; }
+        #output-terminal { width: 854px; height: 120px; margin: 10px auto; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 8px; overflow-y: scroll; white-space: pre-wrap; text-align: left; }
     </style>
 </head>
 <body>
 
-    <h1>DSDA-Doom WebLauncher</h1>
+    <h1>dsda-wasm-doom</h1>
     
     <div class="controls">
-        <label for="iwad-select">Choose Game (IWAD):</label>
-        <select id="iwad-select">
-            <option value="doom2.wad">Doom II (doom2.wad)</option>
-            <option value="doom.wad">Doom Shareware / Registered (doom.wad)</option>
-            <option value="doomu.wad">The Ultimate Doom (doomu.wad)</option>
-            <option value="plutonia.wad">The Plutonia Experiment (plutonia.wad)</option>
-            <option value="tnt.wad">TNT: Evilution (tnt.wad)</option>
-        </select>
+        <label>Select IWAD:</label>
+        <input type="file" id="iwad-file" accept=".wad"><br>
 
-        <label for="pwad-input">Custom PWAD (Optional):</label>
-        <input type="text" id="pwad-input" placeholder="e.g., eviternity.wad">
+        <label>Select PWAD (optional):</label>
+        <input type="file" id="pwad-file" accept=".wad"><br>
 
-        <button id="launch-btn" onclick="launchGame()">Launch Game</button>
+        <button id="launch-btn" onclick="processAndLaunch()">Launch Game</button>
     </div>
+    <br>
     
     <div id="canvas-container">
-        <canvas id="canvas" width="640" height="480" oncontextmenu="event.preventDefault()"></canvas>
+        <canvas id="canvas" width="854" height="480" oncontextmenu="event.preventDefault()"></canvas>
     </div>
 
-    <div id="status">Select your settings and click "Launch Game"</div>
+    <div id="output-terminal">--- Console ---&#10;</div>
 
     <script type="text/javascript">
-        // Global placeholder for Emscripten Module
+        var terminal = document.getElementById('output-terminal');
+
         var Module = {
             preRun: [],
             postRun: [],
             canvas: (function() {
                 var canvas = document.getElementById('canvas');
+                canvas.addEventListener("click", function() {
+                    if(canvas.requestPointerLock) canvas.requestPointerLock();
+                });
                 return canvas;
             })(),
-            setStatus: function(text) {
-                document.getElementById('status').innerHTML = text || "Engine Running.";
-            }
+            print: function(text) { terminal.textContent += text + "\n"; terminal.scrollTop = terminal.scrollHeight; },
+            printErr: function(text) { terminal.textContent += "[ERROR] " + text + "\n"; terminal.scrollTop = terminal.scrollHeight; }
         };
 
-        function launchGame() {
-            var iwad = document.getElementById('iwad-select').value;
-            var pwad = document.getElementById('pwad-input').value.trim().toLowerCase();
+        function mountFile(fileElementId, callback) {
+            var fileInput = document.getElementById(fileElementId);
+            if (fileInput.files.length === 0) {
+                callback(null);
+                return;
+            }
             
-            document.getElementById('launch-btn').disabled = true;
-            Module.setStatus("Loading game files onto virtual drive...");
+            var file = fileInput.files[0];
+            var reader = new FileReader();
+            
+            reader.onload = function(e) {
+                var rawBuffer = new Uint8Array(e.target.result);
+                FS.writeFile('/' + file.name.toLowerCase(), rawBuffer);
+                terminal.textContent += "[WEB] Successfully mounted local file: " + file.name.toLowerCase() + "\n";
+                callback(file.name.toLowerCase());
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
-            // 1. Queue up the core game file to download into the memory filesystem
+        function processAndLaunch() {
+            var iwadInput = document.getElementById('iwad-file');
+            if(iwadInput.files.length === 0) {
+                alert("Please select a core IWAD file (like doom2.wad) from your computer first!");
+                return;
+            }
+
+            document.getElementById('launch-btn').disabled = true;
+            terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.wad)...\n";
+
             Module.preRun.push(function() {
-                FS.createPreloadedFile('/', iwad, iwad, true, false);
-                
-                // If you typed a custom map/mod file, preload that too!
-                if (pwad) {
-                    FS.createPreloadedFile('/', pwad, pwad, true, false);
-                }
+                FS.createPreloadedFile('/', 'dsda-doom.wad', 'dsda-doom.wad', true, false);
             });
 
-            // 2. Build the command line arguments dynamically
-            var launchArgs = ["-iwad", iwad, "-window"];
-            if (pwad) {
-                launchArgs.push("-file", pwad);
-            }
-            Module.arguments = launchArgs;
+            mountFile('iwad-file', function(iwadName) {
+                mountFile('pwad-file', function(pwadName) {
+                    var launchArgs = ["-iwad", iwadName, "-width", "640", "-height", "480", "-window"];
+                    if (pwadName) {
+                        launchArgs.push("-file", pwadName);
+                    }
+                    Module.arguments = launchArgs;
 
-            // 3. Dynamically load the engine script to start the game execution
-            var script = document.createElement('script');
-            script.src = "dsda-doom.js";
-            script.async = true;
-            document.body.appendChild(script);
+                    var script = document.createElement('script');
+                    script.src = "dsda-doom.js";
+                    script.async = true;
+                    document.body.appendChild(script);
+                });
+            });
         }
     </script>
 
