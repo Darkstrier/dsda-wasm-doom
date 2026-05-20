@@ -75,7 +75,7 @@
         function processAndLaunch() {
             var iwadInput = document.getElementById('iwad-file');
             if(iwadInput.files.length === 0) {
-                alert("Please select a core IWAD file (like doom2.wad) from your computer first!");
+                alert("Please select a IWAD from your computer first!");
                 return;
             }
 
@@ -88,7 +88,7 @@
 
             mountFile('iwad-file', function(iwadName) {
                 mountFile('pwad-file', function(pwadName) {
-                    var launchArgs = ["-iwad", iwadName, "-width", "640", "-height", "480", "-window"];
+                    var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
                     if (pwadName) {
                         launchArgs.push("-file", pwadName);
                     }
