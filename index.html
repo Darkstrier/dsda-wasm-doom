@@ -83,7 +83,7 @@
             terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.wad)...\n";
 
             Module.preRun.push(function() {
-		FS.createPreloadedFile('/', 'dsda-doom.wad', 'dsda-doom.bin', true, false);
+			FS.createPreloadedFile('/', 'dsda-doom.wad', 'dsda-doom.bin', true, false);
             });
 
             mountFile('iwad-file', function(iwadName) {
