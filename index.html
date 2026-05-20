@@ -53,8 +53,7 @@
 
     <script type="text/javascript">
         var terminal = document.getElementById('output-terminal');
-        
-        // These will store the raw file bytes temporarily until FS is ready
+    
         var iwadBuffer = null;
         var iwadName = "";
         var pwadBuffer = null;
@@ -63,17 +62,14 @@
         var Module = {
             preRun: [function() {
                 terminal.textContent += "[WEB] Core file system ready. Mounting files...\n";
-                
-                // 1. Download the system assets from GitHub
+
                 FS.createPreloadedFile('/', 'dsda-doom.wad', './dsda-doom.bin', true, false);
-                
-                // 2. Inject your selected IWAD straight into virtual memory
+
                 if (iwadBuffer) {
                     FS.writeFile('/' + iwadName, iwadBuffer);
                     terminal.textContent += "[WEB] Successfully mounted IWAD: " + iwadName + "\n";
                 }
-                
-                // 3. Inject your selected PWAD if you chose one
+
                 if (pwadBuffer) {
                     FS.writeFile('/' + pwadName, pwadBuffer);
                     terminal.textContent += "[WEB] Successfully mounted PWAD: " + pwadName + "\n";
@@ -91,7 +87,6 @@
             printErr: function(text) { terminal.textContent += "[ERROR] " + text + "\n"; terminal.scrollTop = terminal.scrollHeight; }
         };
 
-        // Reads the file into a temporary variable before Emscripten boots
         var readLocalFile = function(elementId, callback) {
             var input = document.getElementById(elementId);
             if (input.files.length === 0) {
@@ -116,17 +111,14 @@
             document.getElementById('launch-btn').disabled = true;
             terminal.textContent += "[WEB] Reading local files into browser memory...\n";
 
-            // Read the IWAD file
             readLocalFile('iwad-file', function(iBuf, iName) {
                 iwadBuffer = iBuf;
                 iwadName = iName;
 
-                // Read the optional PWAD file
                 readLocalFile('pwad-file', function(pBuf, pName) {
                     pwadBuffer = pBuf;
                     pwadName = pName;
 
-                    // Configure engine launch arguments
                     var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
                     if (pwadName) {
                         launchArgs.push("-file", pwadName);
@@ -135,7 +127,6 @@
 
                     terminal.textContent += "[WEB] Downloading engine binaries and core assets...\n";
 
-                    // Inject the main JS engine script. This triggers preRun safely.
                     var script = document.createElement('script');
                     script.src = "dsda-doom.js";
                     script.async = true;
