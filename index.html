@@ -80,13 +80,15 @@
                     terminal.textContent += "[web] Successfully mounted PWAD: " + pwadName + "\n";
                 }
 
+                FS.mkdirTree('/home/webuser/.dsda-doom');
+
                 if (sf2Buffer) {
                     FS.writeFile('/soundfont.sf2', sf2Buffer);
-                    terminal.textContent += "[web] High-quality SoundFont mounted into virtual space.\n";
+                    FS.writeFile('/home/webuser/.dsda-doom/soundfont.sf2', sf2Buffer);
+                    terminal.textContent += "[web] SoundFont loaded globally into filesystem paths.\n";
                 }
 
                 if (cfgBuffer) {
-                    FS.mkdirTree('/home/webuser/.dsda-doom');
                     FS.writeFile('/home/webuser/.dsda-doom/dsda-doom.cfg', cfgBuffer);
                     terminal.textContent += "[web] dsda-doom.cfg configuration mapped into user home workspace.\n";
                 }
@@ -162,14 +164,14 @@
                                     configLines[i] = 'snd_midiplayer                  "fluidsynth"';
                                     hasMidi = true;
                                 } else if (line.startsWith('snd_soundfont')) {
-                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "soundfont.sf2"' : 'snd_soundfont                   ""';
+                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "/soundfont.sf2"' : 'snd_soundfont                   ""';
                                     hasSF = true;
                                 }
                             }
 
                             if (!hasAspect) configLines.push('aspect_ratio_correction         1');
                             if (!hasMidi) configLines.push('snd_midiplayer                  "fluidsynth"');
-                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "soundfont.sf2"' : 'snd_soundfont                   ""');
+                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "/soundfont.sf2"' : 'snd_soundfont                   ""');
 
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
 
