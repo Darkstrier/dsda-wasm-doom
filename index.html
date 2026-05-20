@@ -82,7 +82,6 @@
                 }
 
                 if (sf2Buffer) {
-                    // Mount the SoundFont directly into the virtual root directory
                     FS.writeFile('/' + sf2Name, sf2Buffer);
                     terminal.textContent += "[web] SoundFont mounted successfully to: /" + sf2Name + "\n";
                 }
@@ -155,7 +154,7 @@
                             var hasMidi = false;
                             var hasSF = false;
 
-                            // Scan and overwrite existing properties inside the .cfg array
+                            // Clean and parse lines using uniform single-character standard spaces
                             for (var i = 0; i < configLines.length; i++) {
                                 var line = configLines[i].trim();
                                 if (line.startsWith('aspect_ratio_correction')) {
@@ -170,14 +169,12 @@
                                 }
                             }
 
-                            // Append missing fallback structures if missing from config completely
                             if (!hasAspect) configLines.push('aspect_ratio_correction         1');
                             if (!hasMidi) configLines.push('snd_midiplayer                  "fluidsynth"');
                             if (!hasSF && sf2Name) configLines.push('snd_soundfont                   "/' + sf2Name + '"');
 
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
 
-                            // Safe argument tree (Removed the invalid -soundfont flag)
                             var launchArgs = ["-iwad", iwadName, "-width", "1920", "-height", "1080", "-window"];
                             if (pwadName) {
                                 launchArgs.push("-file", pwadName);
