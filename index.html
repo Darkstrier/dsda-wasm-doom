@@ -58,11 +58,8 @@
     <script type="text/javascript">
         var terminal = document.getElementById('output-terminal');
 
-        // Define the Module skeleton globally instantly
         var Module = {
             preRun: [function() {
-                // FIXED: This now runs automatically during the engine's early boot stage!
-                // Downloads dsda-doom.bin from GitHub, saves it inside Virtual-RAM as dsda-doom.wad
                 FS.createPreloadedFile('/', 'dsda-doom.wad', './dsda-doom.bin', true, false);
             }],
             postRun: [],
@@ -108,16 +105,17 @@
 
             mountFile('iwad-file', function(iwadName) {
                 mountFile('pwad-file', function(pwadName) {
-                    var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
-                    if (pwadName) {
-                        launchArgs.push("-file", pwadName);
+                    var safeIwad = iwadName.toLowerCase();
+                    var safePwad = pwadName ? pwadName.toLowerCase() : null;
+            
+                    var launchArgs = ["-iwad", safeIwad, "-width", "854", "-height", "480", "-window"];
+                    if (safePwad) {
+                        launchArgs.push("-file", safePwad);
                     }
                     Module.arguments = launchArgs;
 
                     terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.bin)...\n";
 
-                    // Injecting the script tag starts execution immediately. 
-                    // Module.preRun defined at the top will now fire perfectly.
                     var script = document.createElement('script');
                     script.src = "dsda-doom.js";
                     script.async = true;
