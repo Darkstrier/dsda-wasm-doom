@@ -74,6 +74,7 @@
     <div id="status">Select your settings and click "Launch Game"</div>
 
     <script type="text/javascript">
+        // Global placeholder for Emscripten Module
         var Module = {
             preRun: [],
             postRun: [],
@@ -93,20 +94,24 @@
             document.getElementById('launch-btn').disabled = true;
             Module.setStatus("Loading game files onto virtual drive...");
 
+            // 1. Queue up the core game file to download into the memory filesystem
             Module.preRun.push(function() {
                 FS.createPreloadedFile('/', iwad, iwad, true, false);
-
+                
+                // If you typed a custom map/mod file, preload that too!
                 if (pwad) {
                     FS.createPreloadedFile('/', pwad, pwad, true, false);
                 }
             });
 
+            // 2. Build the command line arguments dynamically
             var launchArgs = ["-iwad", iwad, "-window"];
             if (pwad) {
                 launchArgs.push("-file", pwad);
             }
             Module.arguments = launchArgs;
 
+            // 3. Dynamically load the engine script to start the game execution
             var script = document.createElement('script');
             script.src = "dsda-doom.js";
             script.async = true;
