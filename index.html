@@ -15,10 +15,10 @@
         button { background: #a00; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
         button:hover { background: #c00; }
         #canvas-container { border: 4px solid #333; background: #000; display: inline-block; position: relative; }
-        canvas { display: block; image-rendering: pixelated; width: 854px; height: 480px; max-width: 100vw; }
+        canvas { display: block; image-rendering: pixelated; width: 1920px; height: 1080px; max-width: 100vw; }
         #fullscreen-btn { background: #444; color: #fff; font-size: 12px; padding: 4px 8px; position: absolute; bottom: 10px; right: 10px; width: auto; margin: 0; opacity: 0.6; }
         #fullscreen-btn:hover { background: #666; opacity: 1.0; }
-        #output-terminal { width: 854px; height: 120px; margin: 10px auto; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 8px; overflow-y: scroll; white-space: pre-wrap; text-align: left; max-width: 100vw; box-sizing: border-box; }
+        #output-terminal { width: 1920px; height: 120px; margin: 10px auto; background: #000; color: #0f0; font-family: monospace; font-size: 11px; padding: 8px; overflow-y: scroll; white-space: pre-wrap; text-align: left; max-width: 100vw; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
 
         var Module = {
             preRun: [function() {
-                terminal.textContent += "[web] Core file system ready. Mounting files...\n";
+                terminal.textContent += "[web] file system ready. mounting files...\n";
                 FS.createPreloadedFile('/', 'dsda-doom.wad', './dsda-doom.bin', true, false);
                 
                 if (iwadBuffer) {
@@ -169,7 +169,7 @@
 
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
 
-                            var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
+                            var launchArgs = ["-iwad", iwadName, "-width", "1920", "-height", "1080", "-window"];
                             if (pwadName) {
                                 launchArgs.push("-file", pwadName);
                             }
