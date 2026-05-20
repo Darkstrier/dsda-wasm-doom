@@ -56,6 +56,14 @@
     <div id="output-terminal">--- Console ---&#10;</div>
 
     <script type="text/javascript">
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        const _OrigAudioContext = window.AudioContext;
+        function PatchedAudioContext(options) {
+            return new _OrigAudioContext(Object.assign({}, options, { sampleRate: 44100 }));
+        }
+        PatchedAudioContext.prototype = _OrigAudioContext.prototype;
+        window.AudioContext = PatchedAudioContext;
+        
         var terminal = document.getElementById('output-terminal');
         
         var iwadBuffer = null;
