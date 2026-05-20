@@ -5,7 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>dsda-wasm-doom</title>
     <style>
+        /* Register the downloaded TrueType Font into the web page stylesheets */
+        @font-face {
+            font-family: 'DoomFont';
+            src: url('AmazDooMLeft.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
         body { background-color: #111; color: #fff; font-family: sans-serif; text-align: center; padding: 15px; }
+        
+        h1 { 
+            font-family: 'DoomFont', sans-serif; 
+            font-size: 3.5rem;
+            color: #ff3300;
+            margin: 10px 0;
+            letter-spacing: 2px;
+            text-shadow: 3px 3px 0px #550000, 5px 5px 0px #000; 
+            text-transform: uppercase; 
+        }
+
         .controls { background: #222; padding: 15px; border-radius: 5px; border: 1px solid #444; display: inline-block; margin-bottom: 15px; }
         input, button { padding: 8px; margin: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 4px; }
         button { background: #a00; cursor: pointer; font-weight: bold; }
@@ -39,8 +58,13 @@
     <script type="text/javascript">
         var terminal = document.getElementById('output-terminal');
 
+        // Define the Module skeleton globally instantly
         var Module = {
-            preRun: [],
+            preRun: [function() {
+                // FIXED: This now runs automatically during the engine's early boot stage!
+                // Downloads dsda-doom.bin from GitHub, saves it inside Virtual-RAM as dsda-doom.wad
+                FS.createPreloadedFile('/', 'dsda-doom.wad', './dsda-doom.bin', true, false);
+            }],
             postRun: [],
             canvas: (function() {
                 var canvas = document.getElementById('canvas');
@@ -75,16 +99,12 @@
         function processAndLaunch() {
             var iwadInput = document.getElementById('iwad-file');
             if(iwadInput.files.length === 0) {
-                alert("Please select a IWAD from your computer first!");
+                alert("Please select an IWAD from your computer first!");
                 return;
             }
 
             document.getElementById('launch-btn').disabled = true;
-            terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.wad)...\n";
-
-            Module.preRun.push(function() {
-			FS.createPreloadedFile('/', 'dsda-doom.wad', 'dsda-doom.bin', true, false);
-            });
+            terminal.textContent += "[WEB] Initializing Virtual File System...\n";
 
             mountFile('iwad-file', function(iwadName) {
                 mountFile('pwad-file', function(pwadName) {
@@ -94,6 +114,10 @@
                     }
                     Module.arguments = launchArgs;
 
+                    terminal.textContent += "[WEB] Downloading engine core assets (dsda-doom.bin)...\n";
+
+                    // Injecting the script tag starts execution immediately. 
+                    // Module.preRun defined at the top will now fire perfectly.
                     var script = document.createElement('script');
                     script.src = "dsda-doom.js";
                     script.async = true;
