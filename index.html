@@ -64,6 +64,7 @@
         var pwadName = "";
         var cfgBuffer = null;
         var sf2Buffer = null;
+        var sf2Name = "";
 
         var Module = {
             preRun: [function() {
@@ -80,17 +81,15 @@
                     terminal.textContent += "[web] Successfully mounted PWAD: " + pwadName + "\n";
                 }
 
-                FS.mkdirTree('/home/webuser/.dsda-doom');
-
                 if (sf2Buffer) {
-                    FS.writeFile('/SC55_zzdenis_v0.5.sf2', sf2Buffer);
-                    FS.writeFile('/home/webuser/.dsda-doom/SC55_zzdenis_v0.5.sf2', sf2Buffer);
-                    terminal.textContent += "[web] SoundFont loaded globally into filesystem paths.\n";
+                    FS.writeFile('/' + sf2Name, sf2Buffer);
+                    terminal.textContent += "[web] SoundFont mounted successfully to: /" + sf2Name + "\n";
                 }
 
                 if (cfgBuffer) {
-                    FS.writeFile('/home/webuser/.dsda-doom/dsda-doom.cfg', cfgBuffer);
-                    terminal.textContent += "[web] dsda-doom.cfg configuration mapped into user home workspace.\n";
+                    FS.mkdirTree('/home/web_user/.dsda-doom');
+                    FS.writeFile('/home/web_user/.dsda-doom/dsda-doom.cfg', cfgBuffer);
+                    terminal.textContent += "[web] dsda-doom.cfg configuration mapped into verified home layout.\n";
                 }
             }],
             postRun: [],
@@ -147,13 +146,12 @@
 
                     readLocalFile('sf2-file', false, function(sBuf, sName) {
                         sf2Buffer = sBuf;
+                        sf2Name = sName;
 
                         readLocalFile('cfg-file', true, function(cText, cName) {
                             var configLines = cText ? cText.split('\n') : [];
-                            
                             var hasAspect = false;
                             var hasMidi = false;
-                            var hasSF = false;
 
                             for (var i = 0; i < configLines.length; i++) {
                                 var line = configLines[i].trim();
@@ -163,21 +161,20 @@
                                 } else if (line.startsWith('snd_midiplayer')) {
                                     configLines[i] = 'snd_midiplayer                  "fluidsynth"';
                                     hasMidi = true;
-                                } else if (line.startsWith('snd_soundfont')) {
-                                    configLines[i] = sf2Buffer ? 'snd_soundfont                   "/SC55_zzdenis_v0.5.sf2"' : 'snd_soundfont                   ""';
-                                    hasSF = true;
                                 }
                             }
 
                             if (!hasAspect) configLines.push('aspect_ratio_correction         1');
                             if (!hasMidi) configLines.push('snd_midiplayer                  "fluidsynth"');
-                            if (!hasSF) configLines.push(sf2Buffer ? 'snd_soundfont                   "/SC55_zzdenis_v0.5.sf2"' : 'snd_soundfont                   ""');
 
                             cfgBuffer = new TextEncoder().encode(configLines.join('\n'));
 
                             var launchArgs = ["-iwad", iwadName, "-width", "854", "-height", "480", "-window"];
                             if (pwadName) {
                                 launchArgs.push("-file", pwadName);
+                            }
+                            if (sf2Name) {
+                                launchArgs.push("-soundfont", "/" + sf2Name);
                             }
                             Module.arguments = launchArgs;
 
